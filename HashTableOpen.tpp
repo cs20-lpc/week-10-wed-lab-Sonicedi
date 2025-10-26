@@ -1,6 +1,12 @@
 template <typename Key, typename Val>
 HashTableOpen<Key, Val>::HashTableOpen(int i) {
     // TODO
+    if (i <= 0) i = 100;      // Use the provided size; default to 100 if invalid
+    M  = i;
+    ht = new LinkedList<Record>*[M];     // layer 1: array of pointers
+    for (int idx = 0; idx < M; ++idx) {
+        ht[idx] = new LinkedList<Record>();  // layer 2: each bucket is a dynamic LinkedList<Record>
+    }
 }
 
 template <typename Key, typename Val>
@@ -22,6 +28,15 @@ HashTableOpen<Key, Val>& HashTableOpen<Key, Val>::operator=
 template <typename Key, typename Val>
 HashTableOpen<Key, Val>::~HashTableOpen() {
     // TODO
+    if (ht != nullptr) {
+        for (int i = 0; i < M; ++i) {
+            delete ht[i];     // delete each dynamic LinkedList
+            ht[i] = nullptr;
+        }
+        delete[] ht;          // delete the dynamic array of pointers
+        ht = nullptr;
+    }
+    M = 0;
 }
 
 template <typename Key, typename Val>
@@ -100,7 +115,19 @@ void HashTableOpen<Key, Val>::copy(const HashTableOpen<Key, Val>& copyObj) {
 template <typename Key, typename Val>
 Val HashTableOpen<Key, Val>::find(const Key& k) const {
     // TODO
+     int slot = hash(k);                         // fold-hash to get bucket index
+    LinkedList<Record>* bucket = ht[slot];
+    int len = bucket->getLength();
+
+    for (int i = 0; i < len; ++i) {
+        Record r = bucket->getElement(i);
+        if (r.k == k) {
+            return r.v;                        // return value of first matching record
+        }
+    }
+    throw string("find: error, key not found"); // required error behavior
 }
+
 
 template <typename Key, typename Val>
 int HashTableOpen<Key, Val>::hash(const Key& k) const {
@@ -153,14 +180,39 @@ int HashTableOpen<Key, Val>::hash(const Key& k) const {
 template <typename Key, typename Val>
 void HashTableOpen<Key, Val>::insert(const Key& k, const Val& v) {
     // TODO
+     int slot = hash(k);
+    LinkedList<Record>* bucket = ht[slot];
+
+    if (bucket->isEmpty()) {
+        bucket->append(Record(k, v));
+    } else {
+        bucket->insert(0, Record(k, v));
+    }
 }
 
 template <typename Key, typename Val>
 void HashTableOpen<Key, Val>::remove(const Key& k) {
     // TODO
+     int slot = hash(k);
+    LinkedList<Record>* bucket = ht[slot];
+    int len = bucket->getLength();
+
+    for (int i = 0; i < len; ++i) {
+        Record r = bucket->getElement(i);
+        if (r.k == k) {
+            bucket->remove(i);           
+            return;
+        }
+    }
+    throw string("remove: error, key not found");
 }
 
 template <typename Key, typename Val>
 int HashTableOpen<Key, Val>::size() const {
     // TODO
+     int total = 0;
+    for (int i = 0; i < M; ++i) {
+        total += ht[i]->getLength();     
+    }
+    return total;
 }
